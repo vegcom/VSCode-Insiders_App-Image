@@ -1,0 +1,84 @@
+name: Build VSCode Insiders AppImage
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y libfuse2
+
+      - name: Download VSCode Insiders
+        run: |
+          curl -L "https://code.visualstudio.com/sha/download?build=insider&os=linux-x64" -o vscode.tar.gz
+          tar -vxzf vscode.tar.gz
+          rm vscode.tar.gz
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION=$(cat VSCode-linux-x64/resources/app/package.json | grep '"version"' | head -1 | cut -d'"' -f4)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Found version: $VERSION"
+
+      - name: Check if release exists
+        id: check
+        run: |
+          if gh release view "v${{ steps.version.outputs.version }}" &>/dev/null; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "Release already exists, skipping build"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Build AppImage
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          mkdir -p work/AppDir/usr
+          mv VSCode-linux-x64/* work/AppDir/usr/
+
+          cat > work/AppDir/AppRun << 'EOF'
+          #!/bin/bash
+          HERE="$(dirname "$(readlink -f "$0")")"
+          exec "$HERE/usr/bin/code-insiders" "$@"
+          EOF
+          chmod +x work/AppDir/AppRun
+
+          cat > work/AppDir/code-insiders.desktop << 'EOF'
+          [Desktop Entry]
+          Name=Visual Studio Code - Insiders
+          Comment=Code Editing. Redefined.
+          Exec=code-insiders %F
+          Icon=code-insiders
+          Type=Application
+          Categories=Development;IDE;
+          EOF
+
+          cp work/AppDir/usr/resources/app/resources/linux/code.png work/AppDir/code-insiders.png || true
+
+          curl -L "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage" -o appimagetool
+          chmod +x appimagetool
+
+          ARCH=x86_64 ./appimagetool --appimage-extract-and-run work/AppDir VSCode-Insiders.AppImage
+
+      - name: Create Release
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          gh release create "v${{ steps.version.outputs.version }}" \
+            --title "VSCode Insiders ${{ steps.version.outputs.version }}" \
+            --generate-notes \
+            VSCode-Insiders.AppImage
+        env:
+          GH_TOKEN: ${{ github.token }}
