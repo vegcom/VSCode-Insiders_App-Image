@@ -1,0 +1,28 @@
+{
+  "name": "Kali Linux (Experimental)",
+  "image": "kalilinux/kali-experimental",
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "configureZshAsDefaultShell": true,
+      "installOhMyZsh": true,
+      "upgradePackages": false
+    },
+    "ghcr.io/devcontainers/features/git:1": {}
+  },
+  "postCreateCommand": "apt-get update && apt-get install -y kali-linux-headless",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-vscode.cpptools",
+        "redhat.vscode-yaml"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "zsh"
+      }
+    }
+  },
+  "remoteUser": "root",
+  "containerUser": "root"
+}
