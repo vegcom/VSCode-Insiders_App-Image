@@ -72,7 +72,7 @@ jobs:
           curl -L "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage" -o appimagetool
           chmod +x appimagetool
 
-          ARCH=x86_64 ./appimagetool --appimage-extract-and-run -u "gh-releases-zsync|vegcom|VSCode-Insiders_App-Image|latest-pre|VSCode-Insiders.AppImage.zsync" work/AppDir VSCode-Insiders.AppImage
+          ARCH=x86_64 ./appimagetool --appimage-extract-and-run -u "gh-releases-zsync|vegcom|VSCode-Insiders_App-Image|latest|VSCode-Insiders.AppImage.zsync" work/AppDir VSCode-Insiders.AppImage
 
       - name: Create Release
         if: steps.check.outputs.exists == 'false'
@@ -80,7 +80,6 @@ jobs:
           gh release create "v${{ steps.version.outputs.version }}" \
             --title "VSCode Insiders ${{ steps.version.outputs.version }}" \
             --notes $'AppImage build of VSCode Insiders ${{ steps.version.outputs.version }}\n\nUpstream release notes: https://github.com/microsoft/vscode/wiki/Insiders-Release-Notes' \
-            --prerelease \
             VSCode-Insiders.AppImage \
             VSCode-Insiders.AppImage.zsync
         env:
